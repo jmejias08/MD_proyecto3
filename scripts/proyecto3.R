@@ -1,17 +1,19 @@
-      # Para preprocesamiento de datos y evaluación de modelos
-# Bibliotecas necesarias para análisis de datos y modelado
-library(rpart)      # Árboles de decisión
-library(ROCR)       # Evaluación de rendimiento de modelos
-library(caret)      # Herramientas para entrenamiento de modelos
-library(randomForest) # Algoritmo Random Forest
-library(dplyr)      # Manipulación de datos
-library(PerformanceAnalytics) # Gráficos de correlación
-library(pROC)       # Curva ROC
+# Cargar librerías necesarias
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(PerformanceAnalytics)
+
 
 # 1. Cargar el Conjunto de datos
 datos = read.csv("./files/datosLaboratorio04.csv")
 
+
+
 head(datos)
+
+str(datos)
+
 summary(datos)
 
 
@@ -25,19 +27,119 @@ summary(datos)
 # Establecer una semilla para reproducibilidad
 set.seed(123)
 
-tamano <- nrow(datos)
+
+
+tamano<-nrow(datos)
+training<-round(tamano*0.7)
+indices<-sample(1:tamano,size = training)
+
+train_data<-datos[indices,]
+test_data<-datos[-indices,]
+chart.Correlation(train_data[,-5])
+
+View(train_data)
+
+
+#################################################################################
+
+# 3 vamos a utlizar random forest
+
+###############################################################################
+
+# 4 entrenamiento del modelo
+
+# Normalización de datos (excluyendo la variable objetivo)
+preProc <- preProcess(train_data[, -ncol(train_data)], method = c("center", "scale"))
+train_data_scaled <- predict(preProc, train_data)
+test_data_scaled <- predict(preProc, test_data)
+
+# Entrenar el modelo Random Forest
+
+rf_model <- randomForest(
+  day_minutes ~ ., 
+  data = train_data_scaled, 
+  importance = TRUE, 
+  ntree = 500
+)
 
 
 
-# Calcular el índice de división (por ejemplo, 80% entrenamiento, 20% prueba)
-indices_entrenamiento <- sample(1:nrow(datos), 0.8 * nrow(datos))
+# Resumen del modelo
+print(rf_model)
 
-# Crear conjuntos de entrenamiento y prueba
-datos_entrenamiento <- datos[indices_entrenamiento, ]
-datos_prueba <- datos[-indices_entrenamiento, ]
 
-# Análisis de correlación entre variables predictoras
-chart.Correlation(datos_entrenamiento[,-5])
+
+
+################################################################################
+
+# 5. Evaluacion del modelo
+
+
+# Predicción en el conjunto de prueba
+predictions <- predict(rf_model, test_data_scaled)
+
+# Calcular métricas
+mse <- mean((predictions - test_data_scaled$day_minutes)^2)
+r2 <- 1 - (sum((predictions - test_data_scaled$day_minutes)^2) / 
+             sum((mean(test_data_scaled$day_minutes) - test_data_scaled$day_minutes)^2))
+
+cat("MSE: ", mse, "\n")
+cat("R-squared: ", r2, "\n")
+
+# Curva ROC no aplica directamente para regresión, pero podemos visualizar errores
+plot(predictions, test_data_scaled$day_minutes, 
+     main = "Predicción vs Valores Reales",
+     xlab = "Predicción", ylab = "Real")
+abline(0, 1, col = "red")
+
+################################################################################
+
+# 6 Ajuste de parametros
+
+# Configurar búsqueda por malla
+tune_grid <- expand.grid(mtry = c(2, 3, 5))
+
+# Afinar el modelo
+set.seed(123)
+tuned_model <- train(
+  day_minutes ~ ., 
+  data = train_data_scaled, 
+  method = "rf",
+  tuneGrid = tune_grid,
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+# Resumen del modelo ajustado
+print(tuned_model)
+
+#################################################################################
+
+# 7 Interpretacion del modelo
+
+# Importancia de las variables
+varImpPlot(rf_model)
+
+varImpPlot(tuned_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################
+# Excluir la variable objetivo de las características
+caracteristicas <- setdiff(names(datos), "customer_service_calls")
+
 
 # Verificar que haya divicion en los datos
 dim(datos_entrenamiento)
@@ -45,12 +147,42 @@ dim(datos_prueba)
 dim(datos)
 
 View(datos_entrenamiento)
+View(datos_prueba)
+
+
+# Opcional: Verificar distribución de la variable objetivo
+# para asegurar que la división mantiene la proporción
+print("Distribución variable objetivo - Datos Originales:")
+table(datos$customer_service_calls)
+print("Distribución variable objetivo - Datos Entrenamiento:")
+table(datos_entrenamiento$customer_service_calls)
+print("Distribución variable objetivo - Datos Prueba:")
+table(datos_prueba$customer_service_calls)
+
+
 
 ###################################################################################
 # 3. Selección del modelo de Machine Learning 
+# Se selecciona el RF debido a su versatibilidad de poder trabajar con variables
+# cualitativas o cuantitativas
 
-modelo<-randomForest(account_length~.,data=datos_entrenamiento, 
-                     ntree=500)
+# Construir el modelo de Random Forest
+# Modelo 1: Random Forest básico
+modelo_rf1 <- randomForest(
+      x = datos_entrenamiento[, caracteristicas], 
+      y = datos_entrenamiento$customer_service_calls,
+      ntree = 1000,  # Número de árboles
+      importance = TRUE
+)
+
+
+predicciones_rf1 <- predict(modelo_rf1, datos_prueba[, caracteristicas])
+
+
+# Evaluación de modelos
+print("Modelo Random Forest Básico:")
+confusion_rf1 <- confusionMatrix(predicciones_rf1, datos_prueba$customer_service_calls)
+print(confusion_rf1)
 
 
 
