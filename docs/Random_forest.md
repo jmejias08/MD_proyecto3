@@ -3,6 +3,8 @@
 
 Este documento detalla el proceso completo de análisis y modelado utilizando el algoritmo Random Forest en R. Incluye la carga de datos, preprocesamiento, entrenamiento del modelo, evaluación y ajustes.
 
+El objetivo de este modelo tiene como propósito predecir el número de minutos diarios que un cliente llega a consumir en llamadas, basado en características relacionadas como la duración de llamadas internacionales y nocturnas . Esto ayuda a identificar clientes clave y ofrecerles promociones personalizadas.
+
 ---
 
 ## 1. Cargar librerías necesarias

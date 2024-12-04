@@ -2,7 +2,9 @@
 # Bitácora de Proyecto: Clustering K-means
 
 ## Descripción General
-Este proyecto implementa un análisis de agrupamiento utilizando el método **K-means** en R. El objetivo es segmentar clientes basándose en datos relacionados con sus patrones de uso de llamadas. Se utiliza un conjunto de datos llamado `llamadas.csv`, el cual contiene variables como minutos y cantidad de llamadas por franjas horarias.
+Este proyecto implementa un análisis de agrupamiento utilizando el método **K-means** en R. En si, el objetivo de este modelo de clustering es agrupar clientes de una empresa de telecomunicaciones en grupos con características similares, basados en sus patrones de uso de llamadas y minutos durante distintos periodos del día. Esto puede ayudar a segmentar clientes para campañas personalizadas, promociones o estrategias de retención. Se utiliza un conjunto de datos llamado `llamadas.csv`, el cual contiene variables como minutos y cantidad de llamadas por franjas horarias.
+
+
 
 ---
 
